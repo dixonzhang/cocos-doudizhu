@@ -10,7 +10,7 @@
 
 ## 环境搭建步骤
 1. 安装nodejs，以及express，socket.io模块
-2. cd到server.js所在目录， 运行： `node server.js`
+2. cd到server.js所在目录(将server目录下的三个js文件copy到express项目下面)， 运行： `node server.js`
 3. 打开creator，打开本实例工程，运行即可。
 
 ## 已实现功能
