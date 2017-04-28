@@ -20,4 +20,4 @@
 4. 牌型校验
 
 ## 游戏截图
-![WX20170428-174917@2x.png](quiver-image-url/4428629E0F69E51DF36AFFB89AD631A6.png)
+ ![image](https://github.com/cocos-doudizhu/show.png)
