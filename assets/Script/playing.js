@@ -26,6 +26,18 @@ cc.Class({
             default: null,
             type: cc.Button
         },
+        buqiangButton: {
+            default: null,
+            type: cc.Button
+        },
+        qiangButton: {
+            default: null,
+            type: cc.Button
+        },
+        dizhuNode: {
+            default: null,
+            type: cc.Node
+        },
         leftHandPokerNode: {
             default: null,
             type: cc.Node
@@ -65,6 +77,8 @@ cc.Class({
         this.node.on(cc.Node.EventType.TOUCH_START, this.nodeDoubleClickCallBack, this);
         this.passButton.node.on(cc.Node.EventType.TOUCH_START, this.passCallBack, this);
         this.readyButton.node.on(cc.Node.EventType.TOUCH_START, this.readyCallBack, this);
+        this.buqiangButton.node.on(cc.Node.EventType.TOUCH_START, this.buqiangCallBack, this);
+        this.qiangButton.node.on(cc.Node.EventType.TOUCH_START, this.qiangCallBack, this);
 
         cc.loader.loadRes("imgs/poker", cc.SpriteAtlas, function (err, assets) {
             // assets 是一个 SpriteFrame 数组，已经包含了图集中的所有 SpriteFrame。
@@ -103,32 +117,70 @@ cc.Class({
 
             var pokerList = msgBean.pokerList;
 
-            var dizhuPokers = msgBean.dizhuPokers;
-            // console.log('dizhu pai:' + JSON.stringify(dizhuPokers));
-            if(dizhuPokers){
-                for(var i = 0; i < dizhuPokers.length; i++){
-                    var poker = dizhuPokers[i];
-                    // console.log('poker:' + poker.name);
-                    pokerList.push(poker);
-                }
-            }
+            // var dizhuPokers = msgBean.dizhuPokers;
+            // // console.log('dizhu pai:' + JSON.stringify(dizhuPokers));
+            // if(dizhuPokers){
+            //     for(var i = 0; i < dizhuPokers.length; i++){
+            //         var poker = dizhuPokers[i];
+            //         // console.log('poker:' + poker.name);
+            //         pokerList.push(poker);
+            //     }
+            // }
 
             Grobal.allPokers = pokerList;
             pokerList.sort(function(a, b){
                 return b.sortValue - a.sortValue;
             });
-            //显示自己的牌
-            // self.displayPokers(pokerList, myNode, pokerPrefab, pokerSpriteFrameMap);
+
+            // 显示抢地主按钮
+            if(msgBean.qiangDizhu){
+                self.buqiangButton.node.active = true;
+                self.qiangButton.node.active = true;
+            }
+
 
             var myNodeScript = myNode.getComponent('MyNodeScript');
             myNodeScript.displayPokers(pokerList, pokerSpriteFrameMap);
 
-            //显示出牌按钮
+            // //显示出牌按钮
+            // if(msgBean.command){
+            //     console.log(JSON.stringify(msgBean.command));
+            //     playButton.node.active = true;
+            // }
+        });
+        //抢地主结束
+        Grobal.socket.on(Grobal.playerName + 'qiangEnd', function(msg){
+            console.log('qiangEnd:', msg);
+            var msgBean = eval('(' + msg + ')');
+            //显示地主牌
+            self.displayPokers(msgBean.dizhuPokers, self.dizhuNode, pokerPrefab, pokerSpriteFrameMap);
+
+             //显示出牌按钮
             if(msgBean.command){
                 console.log(JSON.stringify(msgBean.command));
                 playButton.node.active = true;
             }
+            
+            //将地主牌加入到玩家牌
+            if(msgBean.isDizhu){
+                for(let i in msgBean.dizhuPokers){
+                    Grobal.allPokers.push(msgBean.dizhuPokers[i]);
+                    Grobal.allPokers.sort(function(a, b){
+                        return b.sortValue - a.sortValue;
+                    });
+                    var myNodeScript = myNode.getComponent('MyNodeScript');
+                    myNodeScript.displayPokers(Grobal.allPokers, pokerSpriteFrameMap);
+                }
+            }
         });
+        //监听抢地主
+        Grobal.socket.on(Grobal.playerName + 'qiangdizhu', function(msg){
+            
+            // 显示抢地主按钮
+            self.buqiangButton.node.active = true;
+            self.qiangButton.node.active = true;
+        });
+
 
         // 发送准备好的消息
         Grobal.socket.emit('ready', Grobal.playerName+','+Grobal.roomNum);
@@ -251,6 +303,24 @@ cc.Class({
         this.readyButton.node.active = false;
         this.leftDisplayNode.removeAllChildren();
         this.rightDisplayNode.removeAllChildren();
+    },
+    buqiangCallBack: function(){
+        var msgBean = {};
+        msgBean.playerName = Grobal.playerName;
+        msgBean.roomNum = Grobal.roomNum;
+        msgBean.qiangdizhu = false;
+        Grobal.socket.emit('qiangdizhu', JSON.stringify(msgBean));
+        this.buqiangButton.node.active = false;
+        this.qiangButton.node.active = false;
+    },
+    qiangCallBack: function(){
+        var msgBean = {};
+        msgBean.playerName = Grobal.playerName;
+        msgBean.roomNum = Grobal.roomNum;
+        msgBean.qiangdizhu = true;
+        Grobal.socket.emit('qiangdizhu', JSON.stringify(msgBean));
+        this.buqiangButton.node.active = false;
+        this.qiangButton.node.active = false;
     },
     // 显示牌
     displayPokers: function(pokerList, pnode, pokerPrefab, pokerSpriteFrameMap){
